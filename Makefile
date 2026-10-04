@@ -79,12 +79,9 @@ release: clean
 	@mkdir -p dist
 	@cp jellycub.dol dist/jellycube-$(RELEASE_TAG)-gamecube.dol
 	@cp jellycub-dolphin.dol dist/jellycube-$(RELEASE_TAG)-dolphin.dol
-	@printf 'JellyCube %s
-Commit: %s
-' "$(VERSION)" "$(GIT_SHA)" > dist/jellycube-$(RELEASE_TAG)-manifest.txt
+	@printf 'JellyCube %s\nCommit: %s\n' "$(VERSION)" "$(GIT_SHA)" > dist/jellycube-$(RELEASE_TAG)-manifest.txt
 	@sha256sum dist/jellycube-$(RELEASE_TAG)-*.dol >> dist/jellycube-$(RELEASE_TAG)-manifest.txt
 	@echo "Created dist/jellycube-$(RELEASE_TAG)-{gamecube,dolphin}.dol"
-
 
 else
 
