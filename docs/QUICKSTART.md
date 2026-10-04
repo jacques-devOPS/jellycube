@@ -22,26 +22,19 @@ export DEVKITPPC=/opt/devkitpro/devkitPPC
 
 ## 2. Configure the hardware build
 
-JellyCube reads this file from an SD Gecko:
+JellyCube reads `config.ini` from the directory that contains the launched DOL.
+The loader must pass the DOL path in `argv[0]`, which Swiss does.
+If no path is provided, JellyCube falls back to `<sd card>/apps/jellycube/config.ini`.
+The console prints the DOL path and the config path it used.
 
-```text
-carda:/apps/jellycube/config.ini
-```
-
-Card slot B also works:
-
-```text
-cardb:/apps/jellycube/config.ini
-```
-
-Create this SD-card layout:
+Example SD-card layout:
 
 ```text
 SD card
 └── apps
     └── jellycube
         ├── config.ini
-        └── jellycube-<version>+<commit>-gamecube.dol
+        └── jellycube-v<version>+<commit>-gamecube.dol
 ```
 
 Copy `config.ini.example` as `config.ini`, then edit it:

@@ -3,7 +3,7 @@
 JellyCube is a GameCube homebrew Jellyfin browser and playback-test launcher.
 It targets a GameCube Broadband Adapter, an SD Gecko, and a plain-HTTP Jellyfin server on the same LAN.
 
-**Current version:** `0.2.1-dev`
+**Current version:** `0.2.2-dev`
 
 ## Current state
 
@@ -16,8 +16,8 @@ The project builds two PowerPC GameCube DOL files with devkitPPC and libogc:
 
 The normal hardware build does the following:
 
-1. Mounts a FAT-formatted SD Gecko in card slot A or B.
-2. Loads `apps/jellycube/config.ini` from that card.
+1. Mounts every FAT-formatted SD device it finds (slot A, slot B, SD2SP2).
+2. Loads `config.ini` from the launched DOL's directory, with `apps/jellycube/config.ini` as fallback.
 3. Obtains a network configuration via BBA DHCP.
 4. Authenticates to Jellyfin with `/Users/AuthenticateByName`.
 5. Requests library and item data through the Jellyfin API.
@@ -28,7 +28,7 @@ The normal hardware build does the following:
 - The project compiles with devkitPPC r50, libogc 3.1.0, libfat-ogc 2.1.0, and libbba.
 - A host-side build of the same Jellyfin HTTP/JSON code authenticates successfully against the configured Jellyfin server.
 - Real GameCube BBA testing obtains DHCP successfully. Observed hardware lease: `10.0.0.13`, gateway `10.0.0.1`.
-- The current real-hardware test fails before any Jellyfin HTTP response arrives. The next diagnostic DOL distinguishes TCP connect, HTTP transmission, and HTTP response reception failures.
+- Builds up to 0.2.1 failed TCP on hardware and Dolphin. Root cause, verified in libogc source: GameCube `net_fcntl()` is a stub that always returns -1. The client treated that as fatal and never called `net_connect()`. 0.2.2 uses blocking sockets. Host test passes with the new client. Hardware retest pending.
 
 ## Not verified
 
@@ -40,12 +40,11 @@ The normal hardware build does the following:
 
 ## Network diagnostics
 
-The current DOL reports one of these failures:
+The current DOL reports the failing stage and socket errno:
 
 ```text
-Network: TCP connect to <server>:<port> failed.
-Network: HTTP request transmission failed.
-Network: HTTP response reception failed.
+Network: <address|socket|TCP connect|HTTP send|HTTP receive|HTTP parse> failed (error <n>).
+Network: server returned HTTP <status>.
 JSON: response parse failed (<code>).
 Jellyfin: authentication response omitted token or user ID.
 ```

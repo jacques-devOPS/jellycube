@@ -1,8 +1,6 @@
 # JellyCube configuration file
-# Place this file at:
-#   carda:/apps/jellycube/config.ini
-# or
-#   cardb:/apps/jellycube/config.ini
+# Place this file in the same directory as the JellyCube DOL.
+# Fallback location: <sd card>/apps/jellycube/config.ini
 
 # Jellyfin server IPv4 address only (no hostnames, no HTTPS).
 server = 192.168.1.100
