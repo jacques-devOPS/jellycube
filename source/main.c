@@ -8,6 +8,7 @@
 #include "jc_network.h"
 #include "dolphin_test.h"
 #include "jellyfin.h"
+#include "config_locate.h"
 
 #ifndef JC_VERSION
 #define JC_VERSION "unknown"
@@ -18,10 +19,8 @@ static jellyfin_client_t client;
 static char parents[16][128];
 static int offsets[16], selections[16];
 
-static const char *volumes[3];
-static int volume_count;
+static const char *volume;          /* Mounted SD volume, e.g. "carda:" */
 static char config_path[300];
-static const char *config_volume;
 
 static u32 buttons(void) { VIDEO_WaitVSync(); PAD_ScanPads(); return PAD_ButtonsDown(0); }
 static void wait_start(void) { printf("\nSTART: exit\n"); while (!(buttons() & PAD_BUTTON_START)) {} }
@@ -30,61 +29,11 @@ static int load_level(int depth) {
                  : jellyfin_get_libraries(&client);
 }
 
-static void mount_volumes(void) {
-    if (fatMountSimple("carda", &__io_gcsda)) volumes[volume_count++] = "carda:";
-    if (fatMountSimple("cardb", &__io_gcsdb)) volumes[volume_count++] = "cardb:";
-    if (fatMountSimple("sd2", &__io_gcsd2))   volumes[volume_count++] = "sd2:";
-}
-
-static int try_path(const char *path, const char *volume) {
-    if (strlen(path) >= sizeof(config_path)) return 0;
-    FILE *f = fopen(path, "r");
-    if (!f) return 0;
-    fclose(f);
-    strcpy(config_path, path);
-    config_volume = volume;
-    return 1;
-}
-
-static const char *volume_for(const char *path) {
-    for (int i = 0; i < volume_count; i++)
-        if (!strncmp(path, volumes[i], strlen(volumes[i]))) return volumes[i];
-    return volume_count ? volumes[0] : NULL;
-}
-
-/*
- * Locate config.ini in the directory of the launched DOL.
- * Loaders such as Swiss pass the DOL path in argv[0]. The loader's device
- * prefix can differ from JellyCube's libfat mount names, so the directory
- * part is retried on every mounted volume.
- * Fallback: <volume>/apps/jellycube/config.ini.
- */
-static int find_config(int argc, char **argv) {
-    char dir[200], path[300];
-    if (argc > 0 && argv && argv[0] && argv[0][0] && strlen(argv[0]) < sizeof(dir)) {
-        printf("DOL: %s\n", argv[0]);
-        strcpy(dir, argv[0]);
-        char *slash = strrchr(dir, '/');
-        if (slash) {
-            *slash = 0;
-            snprintf(path, sizeof(path), "%s/config.ini", dir);
-            if (try_path(path, volume_for(path))) return 1;
-            const char *rel = strchr(dir, ':');
-            rel = rel ? rel + 1 : dir;
-            for (int i = 0; i < volume_count; i++) {
-                snprintf(path, sizeof(path), "%s%s%s/config.ini", volumes[i],
-                         (rel[0] == '/' || !rel[0]) ? "" : "/", rel);
-                if (try_path(path, volumes[i])) return 1;
-            }
-        }
-    } else {
-        printf("DOL: path not provided by loader\n");
-    }
-    for (int i = 0; i < volume_count; i++) {
-        snprintf(path, sizeof(path), "%s/apps/jellycube/config.ini", volumes[i]);
-        if (try_path(path, volumes[i])) return 1;
-    }
-    return 0;
+/* Mount the first SD device found. Same order and behaviour as 0.2.1. */
+static void mount_volume(void) {
+    if (fatMountSimple("carda", &__io_gcsda)) volume = "carda:";
+    else if (fatMountSimple("cardb", &__io_gcsdb)) volume = "cardb:";
+    else if (fatMountSimple("sd2", &__io_gcsd2)) volume = "sd2:";
 }
 
 int main(int argc, char **argv) {
@@ -102,10 +51,12 @@ int main(int argc, char **argv) {
 
     printf("\x1b[2J\x1b[HJellyCube %s\n", JC_VERSION);
 
-    mount_volumes();
-    if (!volume_count) printf("No FAT SD card mounted.\n");
+    mount_volume();
+    if (volume) printf("SD: %s mounted\n", volume);
+    else printf("SD: no FAT card mounted\n");
 
-    if (find_config(argc, argv)) {
+    printf("Config search:\n");
+    if (volume && config_locate(volume, argc, argv, config_path, sizeof(config_path))) {
         if (config_load(config_path, &config) < 0) {
             printf("Invalid config: %s\n", config_path);
             wait_start();
@@ -122,7 +73,6 @@ int main(int argc, char **argv) {
         return 1;
 #endif
     }
-    const char *volume = config_volume ? config_volume : (volume_count ? volumes[0] : NULL);
 
     printf("Server: %s:%d (HTTP)\n", config.server_address, config.server_port);
     if (network_init() < 0) {

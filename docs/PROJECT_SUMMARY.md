@@ -3,7 +3,7 @@
 JellyCube is a GameCube homebrew Jellyfin browser and playback-test launcher.
 It targets a GameCube Broadband Adapter, an SD Gecko, and a plain-HTTP Jellyfin server on the same LAN.
 
-**Current version:** `0.2.2-dev`
+**Current version:** `0.2.3-dev`
 
 ## Current state
 
@@ -16,8 +16,8 @@ The project builds two PowerPC GameCube DOL files with devkitPPC and libogc:
 
 The normal hardware build does the following:
 
-1. Mounts every FAT-formatted SD device it finds (slot A, slot B, SD2SP2).
-2. Loads `config.ini` from the launched DOL's directory, with `apps/jellycube/config.ini` as fallback.
+1. Mounts the first FAT-formatted SD device found: slot A, then slot B, then SD2SP2.
+2. Loads `config.ini` from the launched DOL's directory, with `apps/jellycube/config.ini` as fallback. Path matching is case-insensitive.
 3. Obtains a network configuration via BBA DHCP.
 4. Authenticates to Jellyfin with `/Users/AuthenticateByName`.
 5. Requests library and item data through the Jellyfin API.

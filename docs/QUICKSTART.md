@@ -25,7 +25,9 @@ export DEVKITPPC=/opt/devkitpro/devkitPPC
 JellyCube reads `config.ini` from the directory that contains the launched DOL.
 The loader must pass the DOL path in `argv[0]`, which Swiss does.
 If no path is provided, JellyCube falls back to `<sd card>/apps/jellycube/config.ini`.
-The console prints the DOL path and the config path it used.
+The search is case-insensitive (`apps/jellyCube/CONFIG.INI` matches).
+Files edited on Windows are accepted: CRLF line endings, UTF-8 BOM, quoted values.
+The console prints the mounted SD volume, each path tried, and the config file used.
 
 Example SD-card layout:
 
