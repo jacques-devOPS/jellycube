@@ -1,0 +1,35 @@
+# JellyCube Project Layout
+
+```
+jellyCube/
+├── Makefile                 # Build system
+├── README.md                # Project overview
+├── config.ini.example       # Template for SD-card config
+├── jellycub.dol             # Hardware build (generated)
+├── jellycub-dolphin.dol     # Dolphin test build (generated)
+│
+├── docs/                    # Documentation
+│   ├── QUICKSTART.md
+│   ├── PROJECT_SUMMARY.md
+│   └── STRUCTURE.txt
+│
+├── include/                 # Public headers
+├── source/                  # C implementation
+│   └── dolphin_test.c       # Embedded test config for Dolphin builds
+│
+├── third_party/             # External dependencies (jsmn)
+│
+├── build/                   # Object files for normal build (generated)
+├── build-dolphin/           # Object files for Dolphin build (generated)
+│
+└── extras/                  # Research, backups, scratch space
+    ├── backups/
+    ├── research/
+    ├── scripts/
+    └── tests/
+```
+
+Source of truth for server IP and credentials:
+
+- Dolphin test build: `source/dolphin_test.local.c` — must be edited and recompiled.
+- Hardware build: `config.ini` on the SD card — no recompile needed.

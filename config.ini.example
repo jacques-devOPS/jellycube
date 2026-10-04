@@ -1,0 +1,20 @@
+# JellyCube configuration file
+# Place this file at:
+#   carda:/apps/jellycub/config.ini
+# or
+#   cardb:/apps/jellycub/config.ini
+
+# Jellyfin server IPv4 address only (no hostnames, no HTTPS).
+server = 192.168.1.100
+
+# Jellyfin HTTP port. Default is 8096.
+port = 8096
+
+# Jellyfin credentials. Use a test account; the playlist file written
+# to the SD card will contain the API token.
+username = test_user
+password = test_pass
+
+# Client identification sent to Jellyfin.
+device_id = jellycube_01
+client_name = JellyCube

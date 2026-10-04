@@ -1,0 +1,15 @@
+#include "dolphin_test.h"
+#ifdef JC_DOLPHIN_TEST
+/* Copy this file to dolphin_test.local.c, then edit its values.
+ * dolphin_test.local.c is ignored by Git.
+ * Do not commit real credentials. This build is for emulator testing only. */
+const jellyfin_config_t dolphin_test_config = {
+    .server_address = "192.168.1.100",
+    .server_port    = 8096,
+    .username       = "test_user",
+    .password       = "test_pass",
+    .device_id      = "jellycube_dolphin",
+    .client_name    = "JellyCube-Dolphin",
+    .client_version = "0.2-test"
+};
+#endif
