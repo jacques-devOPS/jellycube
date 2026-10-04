@@ -6,16 +6,17 @@ endif
 
 include $(DEVKITPPC)/gamecube_rules
 
+PROJECT_DIR := $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 TARGET := jellycube
 BUILD := build
-VERSION := $(strip $(shell cat VERSION 2>/dev/null || echo 0.0.0-unknown))
-GIT_SHA := $(strip $(shell git rev-parse --short HEAD 2>/dev/null || echo nogit))
+VERSION := $(strip $(shell cat $(PROJECT_DIR)VERSION 2>/dev/null || echo 0.0.0-unknown))
+GIT_SHA := $(strip $(shell git -C $(PROJECT_DIR) rev-parse --short HEAD 2>/dev/null || echo nogit))
 RELEASE_TAG := v$(VERSION)+$(GIT_SHA)
 SOURCES := source
 DATA := data
 INCLUDES := include third_party
 
-CFLAGS = -g -O2 -Wall -Wextra -Werror $(MACHDEP) $(INCLUDE)
+CFLAGS = -g -O2 -Wall -Wextra -Werror $(MACHDEP) $(INCLUDE) $(EXTRA_CFLAGS) -DJC_VERSION='"$(VERSION)+$(GIT_SHA)"'
 CXXFLAGS = $(CFLAGS)
 LDFLAGS = -g $(MACHDEP) -Wl,-Map,$(notdir $@).map
 
@@ -71,7 +72,7 @@ run:
 dolphin:
 	@test -f source/dolphin_test.local.c || { echo "Create source/dolphin_test.local.c from source/dolphin_test.local.c.example"; exit 1; }
 	@[ -d build-dolphin ] || mkdir -p build-dolphin
-	@$(MAKE) --no-print-directory -C build-dolphin -f $(CURDIR)/Makefile TARGET=jellycube-dolphin BUILD=build-dolphin OUTPUT=$(CURDIR)/jellycube-dolphin CFLAGS="$(CFLAGS) -DJC_DOLPHIN_TEST"
+	@$(MAKE) --no-print-directory -C build-dolphin -f $(CURDIR)/Makefile TARGET=jellycube-dolphin BUILD=build-dolphin OUTPUT=$(CURDIR)/jellycube-dolphin EXTRA_CFLAGS=-DJC_DOLPHIN_TEST
 
 release: clean
 	@$(MAKE) --no-print-directory

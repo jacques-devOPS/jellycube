@@ -27,22 +27,19 @@ static int auth_header(jellyfin_client_t *c,char *out,size_t size) {
 }
 static int request(jellyfin_client_t *c,const char *method,const char *path,const char *body) {
     http_connection_t conn={.socket=-1};char auth[1024];int result=-1;
-    if(auth_header(c,auth,sizeof(auth))<0) return -1;
-    if(http_connect(&conn,c->config->server_address,c->config->server_port)<0) {
-        printf("Network: TCP connect to %s:%d failed.\n", c->config->server_address, c->config->server_port);
-        return -1;
-    }
-    if(http_send_request(&conn,method,path,body,auth)<0) {
-        printf("Network: HTTP request transmission failed.\n");
-        goto done;
-    }
-    if(http_receive_response(&conn,response,sizeof(response))<0) {
-        printf("Network: HTTP response reception failed.\n");
-        goto done;
-    }
+    if(auth_header(c,auth,sizeof(auth))<0) {printf("Jellyfin: authorization header too long.\n");return -1;}
+    printf("HTTP: %s %s:%d ...\n",method,c->config->server_address,c->config->server_port);
+    if(http_connect(&conn,c->config->server_address,c->config->server_port)<0) goto fail;
+    if(http_send_request(&conn,method,path,body,auth)<0) goto fail;
+    if(http_receive_response(&conn,response,sizeof(response))<0) goto fail;
     result=json_parse(&doc,response);
     if(result<0) printf("JSON: response parse failed (%d).\n",doc.count);
-done:http_close(&conn);return result;
+    goto done;
+fail:
+    if(conn.stage==HTTP_STAGE_STATUS) printf("Network: server returned HTTP %d.\n",conn.status);
+    else printf("Network: %s failed (error %d).\n",http_stage_name(conn.stage),(int)conn.error);
+done:
+    http_close(&conn);return result;
 }
 s32 jellyfin_authenticate(jellyfin_client_t *c) {
     char user[1537],pw[1537],body[3120];
