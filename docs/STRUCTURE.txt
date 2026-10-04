@@ -1,35 +1,70 @@
 # JellyCube Project Layout
 
-```
+```text
 jellyCube/
-├── Makefile                 # Build system
-├── README.md                # Project overview
-├── config.ini.example       # Template for SD-card config
-├── jellycube.dol             # Hardware build (generated)
-├── jellycube-dolphin.dol     # Dolphin test build (generated)
+├── .gitignore                         # Excludes output and local credentials
+├── Makefile                           # Build, Dolphin, release, and clean targets
+├── README.md                          # Project overview
+├── VERSION                            # Current development version
+├── config.ini.example                 # SD-card configuration template
 │
-├── docs/                    # Documentation
-│   ├── QUICKSTART.md
-│   ├── PROJECT_SUMMARY.md
-│   └── STRUCTURE.txt
+├── docs/
+│   ├── PROJECT_SUMMARY.md             # Verified status and current gate
+│   ├── QUICKSTART.md                  # Build and real-hardware test procedure
+│   └── STRUCTURE.txt                  # This layout reference
 │
-├── include/                 # Public headers
-├── source/                  # C implementation
-│   └── dolphin_test.c       # Embedded test config for Dolphin builds
+├── include/                           # Public C headers
+│   ├── config.h
+│   ├── dolphin_test.h
+│   ├── http.h
+│   ├── jc_network.h
+│   ├── jellyfin.h
+│   ├── json.h
+│   └── platform.h
 │
-├── third_party/             # External dependencies (jsmn)
+├── source/                            # JellyCube implementation
+│   ├── config.c                       # SD-card INI parser and IPv4 validation
+│   ├── dolphin_test.local.c.example   # Tracked Dolphin configuration template
+│   ├── dolphin_test.local.c           # Ignored local Dolphin credentials
+│   ├── http.c                         # TCP/HTTP client
+│   ├── jellyfin.c                     # Jellyfin API and diagnostics
+│   ├── json.c                         # JSON helper functions
+│   ├── main.c                         # Console UI, SD handling, controls
+│   └── network.c                      # Broadband Adapter DHCP
 │
-├── build/                   # Object files for normal build (generated)
-├── build-dolphin/           # Object files for Dolphin build (generated)
+├── third_party/
+│   ├── jsmn.h                         # JSON tokenizer
+│   └── jsmn.LICENSE
 │
-└── archive/                  # Research, backups, scratch space
-    ├── backups/
-    ├── research/
-    ├── scripts/
-    └── tests/
+├── archive/                           # Legacy material, not active source
+│   ├── backups/                       # Original-prototype snapshot
+│   ├── research/                      # Downloaded MPlayer CE and toolchain research
+│   ├── scripts/                       # Historical helper scripts
+│   └── tests/                         # Historical host-side test sources
+│
+├── dist/                              # Versioned release artifacts, ignored by Git
+│   ├── jellycube-v<version>+<commit>-gamecube.dol
+│   ├── jellycube-v<version>+<commit>-dolphin.dol
+│   └── jellycube-v<version>+<commit>-manifest.txt
+│
+├── build/                             # Normal object files, generated and ignored
+└── build-dolphin/                     # Dolphin object files, generated and ignored
 ```
 
-Source of truth for server IP and credentials:
+## Build targets
 
-- Dolphin test build: `source/dolphin_test.local.c` — must be edited and recompiled.
-- Hardware build: `config.ini` on the SD card — no recompile needed.
+```bash
+make                 # Normal build. Produces temporary jellycube.dol.
+make dolphin         # Dolphin build. Requires source/dolphin_test.local.c.
+make release         # Builds both targets, packages dist artifacts, then cleans.
+make clean           # Removes generated artifacts and object directories.
+```
+
+## Configuration sources
+
+| Build | Server and credentials | Location |
+|---|---|---|
+| Real hardware | SD-card configuration | `carda:/apps/jellycube/config.ini` or `cardb:/apps/jellycube/config.ini` |
+| Dolphin only | Embedded local test configuration | `source/dolphin_test.local.c` |
+
+`source/dolphin_test.local.c` is ignored by Git. Create it from `source/dolphin_test.local.c.example`.
