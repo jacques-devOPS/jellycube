@@ -7,8 +7,8 @@ int main(void) {
     jellyfin_config_t config = {
         .server_address = "<JELLYFIN_IP>",
         .server_port    = 8096,
-        .username       = "gamecube",
-        .password       = "<JELLYFIN_PASSWORD>",
+        .username       = "<JELLYFIN_USERNAME>",
+        .password       = <JELLYFIN_PASSWORD>,
         .device_id      = "hosttest",
         .client_name    = "JellyCube-HostTest",
         .client_version = "0.2-test"

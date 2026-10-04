@@ -5,8 +5,8 @@ jellyCube/
 ├── Makefile                 # Build system
 ├── README.md                # Project overview
 ├── config.ini.example       # Template for SD-card config
-├── jellycub.dol             # Hardware build (generated)
-├── jellycub-dolphin.dol     # Dolphin test build (generated)
+├── jellycube.dol             # Hardware build (generated)
+├── jellycube-dolphin.dol     # Dolphin test build (generated)
 │
 ├── docs/                    # Documentation
 │   ├── QUICKSTART.md
@@ -22,7 +22,7 @@ jellyCube/
 ├── build/                   # Object files for normal build (generated)
 ├── build-dolphin/           # Object files for Dolphin build (generated)
 │
-└── extras/                  # Research, backups, scratch space
+└── archive/                  # Research, backups, scratch space
     ├── backups/
     ├── research/
     ├── scripts/

@@ -9,17 +9,17 @@ Build a native Jellyfin client for the Nintendo GameCube (homebrew), starting fr
 ## What exists now
 - Refactored GameCube client that builds with devkitPPC/libogc.
 - Produces:
-  - `jellycub.dol` — hardware build (reads `config.ini` from SD Gecko)
-  - `jellycub-dolphin.dol` — Dolphin emulator test build (embedded config, no SD needed)
+  - `jellycube.dol` — hardware build (reads `config.ini` from SD Gecko)
+  - `jellycube-dolphin.dol` — Dolphin emulator test build (embedded config, no SD needed)
 - HTTP client with non-blocking sockets, chunked transfer, status checks.
 - JSMN-based JSON parser (token limit raised to 8192).
 - Jellyfin API: authenticate, list libraries, list items, generate stream URL.
 - Controller-driven UI; exports an `.m3u` playlist for MPlayer CE r658.
-- Host auth test at `extras/tests/host_auth_test.c` succeeds against `<JELLYFIN_IP>:8096` with user `<JELLYFIN_USERNAME>` / `<JELLYFIN_PASSWORD>`.
+- Host auth test at `archive/tests/host_auth_test.c` succeeds against `<JELLYFIN_IP>:8096` with user `<JELLYFIN_USERNAME>` / `<JELLYFIN_PASSWORD>`.
 
 ## Configuration
 - Dolphin build: edit `source/dolphin_test.c`, then `make dolphin`.
-- Hardware build: place `config.ini` on SD card (`carda:/apps/jellycub/config.ini`).
+- Hardware build: place `config.ini` on SD card (`carda:/apps/jellycube/config.ini`).
 - Server must be a literal IPv4 address; only plain HTTP is supported.
 
 ## Current blocker
@@ -44,7 +44,7 @@ The host-side `curl` and `host_auth_test` both work, so the code path is correct
 - `config.ini.example` — hardware config template
 
 ## Backup
-`extras/backups/original-prototype.tar.gz` contains the pre-refactor source.
+`archive/backups/original-prototype.tar.gz` contains the pre-refactor source.
 
 ## Next step (pending)
 Choose one of the three network options and verify the GameCube can reach Jellyfin.

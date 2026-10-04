@@ -36,7 +36,7 @@ Dolphin test build (no SD card needed, embeds test credentials):
 make dolphin -j$(nproc)
 ```
 
-You should get `jellycub.dol` and/or `jellycub-dolphin.dol` with no errors.
+You should get `jellycube.dol` and/or `jellycube-dolphin.dol` with no errors.
 
 ## 3. Prepare the Dolphin test build
 
@@ -66,7 +66,7 @@ This build is for emulator testing only. Do not use it on hardware or commit rea
 
 1. Open Dolphin.
 2. Config → GameCube → SP1 set to **Broadband Adapter (TAP)** and bridge it to your LAN adapter.
-3. Load `jellycub-dolphin.dol` (File → Open, or set it as the default ISO).
+3. Load `jellycube-dolphin.dol` (File → Open, or set it as the default ISO).
 4. Run the DOL.
 
 Expected output:
@@ -85,25 +85,25 @@ If you see `Authentication failed`, log in through a browser with the same usern
 
 ### Dolphin with SD card (optional)
 
-If your Dolphin build shows an **SD Card** option in Config → GameCube → Slot A, you can use the normal `jellycub.dol` with a virtual SD card:
+If your Dolphin build shows an **SD Card** option in Config → GameCube → Slot A, you can use the normal `jellycube.dol` with a virtual SD card:
 
 - Tools → Configure Emulated SD Card.
-- Sync a folder containing `apps/jellycub/config.ini` and `mplayer/`.
+- Sync a folder containing `apps/jellycube/config.ini` and `mplayer/`.
 - Set Slot A to **SD Card**.
 
 Some Dolphin builds do not expose GameCube SD card emulation; use the Dolphin test build above instead.
 
 ## 5. Test on hardware
 
-1. Copy `jellycub.dol` to `carda:/apps/jellycub/jellycub.dol`.
-2. Copy `config.ini` to `carda:/apps/jellycub/config.ini`.
+1. Copy `jellycube.dol` to `carda:/apps/jellycube/jellycube.dol`.
+2. Copy `config.ini` to `carda:/apps/jellycube/config.ini`.
 3. Boot from an SD-capable loader.
 4. Select a movie/episode and press A. The app writes `carda:/mplayer/jellycube.m3u`.
 5. Launch MPlayer CE r658 and load the playlist.
 
 ## 6. Configure the SD-card build
 
-Place `config.ini` at `carda:/apps/jellycub/config.ini` (or `cardb:/apps/jellycub/config.ini`):
+Place `config.ini` at `carda:/apps/jellycube/config.ini` (or `cardb:/apps/jellycube/config.ini`):
 
 ```ini
 server   = 192.168.1.100

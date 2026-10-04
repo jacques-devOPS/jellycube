@@ -37,7 +37,7 @@ int main(int argc,char **argv) {
         wait_start();return 1;
 #endif
     } else {
-        snprintf(path,sizeof(path),"%s/apps/jellycub/config.ini",volume);
+        snprintf(path,sizeof(path),"%s/apps/jellycube/config.ini",volume);
         if(config_load(path,&config)<0) {printf("Missing or invalid config: %s\n",path);wait_start();return 1;}
     }
     printf("Server: %s:%d\nHTTP only. Use a trusted LAN and test account.\n",config.server_address,config.server_port);

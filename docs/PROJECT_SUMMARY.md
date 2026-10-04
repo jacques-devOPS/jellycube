@@ -48,7 +48,7 @@ third_party/jsmn.h     JSON tokenizer
 - The server must be HTTP and a literal IPv4 address.
 - The generated playlist contains the API key and should be deleted after testing.
 - MPlayer CE r658 for GameCube mounts SD cards via SD Gecko slots A/B; SD2SP2 is not guaranteed.
-- Some Dolphin builds do not emulate the GameCube SD card slot; use the `jellycub-dolphin.dol` build for API testing.
+- Some Dolphin builds do not emulate the GameCube SD card slot; use the `jellycube-dolphin.dol` build for API testing.
 
 ## Roadmap
 

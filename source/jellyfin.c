@@ -28,11 +28,20 @@ static int auth_header(jellyfin_client_t *c,char *out,size_t size) {
 static int request(jellyfin_client_t *c,const char *method,const char *path,const char *body) {
     http_connection_t conn={.socket=-1};char auth[1024];int result=-1;
     if(auth_header(c,auth,sizeof(auth))<0) return -1;
-    if(http_connect(&conn,c->config->server_address,c->config->server_port)<0) return -1;
-    if(http_send_request(&conn,method,path,body,auth)<0) goto done;
-    if(http_receive_response(&conn,response,sizeof(response))<0) goto done;
+    if(http_connect(&conn,c->config->server_address,c->config->server_port)<0) {
+        printf("Network: TCP connect to %s:%d failed.\n", c->config->server_address, c->config->server_port);
+        return -1;
+    }
+    if(http_send_request(&conn,method,path,body,auth)<0) {
+        printf("Network: HTTP request transmission failed.\n");
+        goto done;
+    }
+    if(http_receive_response(&conn,response,sizeof(response))<0) {
+        printf("Network: HTTP response reception failed.\n");
+        goto done;
+    }
     result=json_parse(&doc,response);
-    if(result<0) printf("JSON parse failed (%d). Token limit may be too low.\n",doc.count);
+    if(result<0) printf("JSON: response parse failed (%d).\n",doc.count);
 done:http_close(&conn);return result;
 }
 s32 jellyfin_authenticate(jellyfin_client_t *c) {
@@ -43,17 +52,13 @@ s32 jellyfin_authenticate(jellyfin_client_t *c) {
     if(n<0 || n>=(int)sizeof(body)) return -1;
     int r=request(c,"POST","/Users/AuthenticateByName",body);
     memset(pw,0,sizeof(pw));memset(body,0,sizeof(body));
-    if(r<0) {
-        printf("DEBUG: request failed (%d). Response preview:\n%.256s\n", r, response);
-        return -1;
-    }
+    if(r<0) return -1;
     int u=json_member(&doc,0,"User");
     int tok=json_member(&doc,0,"AccessToken");
-    printf("DEBUG: request ok (%d). User token=%d User obj=%d\n", r, tok, u);
     if(json_string(&doc,tok,c->access_token,sizeof(c->access_token))<0 ||
        json_string(&doc,json_member(&doc,u,"Id"),c->user_id,sizeof(c->user_id))<0 ||
        !safe_id(c->user_id) || !safe_id(c->access_token)) {
-        printf("DEBUG: token extraction failed. Preview:\n%.512s\n", response);
+        printf("Jellyfin: authentication response omitted token or user ID.\n");
         memset(c->access_token,0,sizeof(c->access_token));return -1;
     }
     return 0;

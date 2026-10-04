@@ -6,7 +6,7 @@ endif
 
 include $(DEVKITPPC)/gamecube_rules
 
-TARGET := jellycub
+TARGET := jellycube
 BUILD := build
 VERSION := $(strip $(shell cat VERSION 2>/dev/null || echo 0.0.0-unknown))
 GIT_SHA := $(strip $(shell git rev-parse --short HEAD 2>/dev/null || echo nogit))
@@ -63,7 +63,7 @@ $(BUILD):
 
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) build-dolphin $(TARGET).elf $(TARGET).dol jellycub-dolphin.elf jellycub-dolphin.dol
+	@rm -fr $(BUILD) build-dolphin $(TARGET).elf $(TARGET).dol jellycube-dolphin.elf jellycube-dolphin.dol
 
 run:
 	wiiload $(TARGET).dol
@@ -71,16 +71,17 @@ run:
 dolphin:
 	@test -f source/dolphin_test.local.c || { echo "Create source/dolphin_test.local.c from source/dolphin_test.local.c.example"; exit 1; }
 	@[ -d build-dolphin ] || mkdir -p build-dolphin
-	@$(MAKE) --no-print-directory -C build-dolphin -f $(CURDIR)/Makefile TARGET=jellycub-dolphin BUILD=build-dolphin OUTPUT=$(CURDIR)/jellycub-dolphin CFLAGS="$(CFLAGS) -DJC_DOLPHIN_TEST"
+	@$(MAKE) --no-print-directory -C build-dolphin -f $(CURDIR)/Makefile TARGET=jellycube-dolphin BUILD=build-dolphin OUTPUT=$(CURDIR)/jellycube-dolphin CFLAGS="$(CFLAGS) -DJC_DOLPHIN_TEST"
 
 release: clean
 	@$(MAKE) --no-print-directory
 	@$(MAKE) --no-print-directory dolphin
 	@mkdir -p dist
-	@cp jellycub.dol dist/jellycube-$(RELEASE_TAG)-gamecube.dol
-	@cp jellycub-dolphin.dol dist/jellycube-$(RELEASE_TAG)-dolphin.dol
+	@cp jellycube.dol dist/jellycube-$(RELEASE_TAG)-gamecube.dol
+	@cp jellycube-dolphin.dol dist/jellycube-$(RELEASE_TAG)-dolphin.dol
 	@printf 'JellyCube %s\nCommit: %s\n' "$(VERSION)" "$(GIT_SHA)" > dist/jellycube-$(RELEASE_TAG)-manifest.txt
 	@sha256sum dist/jellycube-$(RELEASE_TAG)-*.dol >> dist/jellycube-$(RELEASE_TAG)-manifest.txt
+	@$(MAKE) --no-print-directory clean
 	@echo "Created dist/jellycube-$(RELEASE_TAG)-{gamecube,dolphin}.dol"
 
 else

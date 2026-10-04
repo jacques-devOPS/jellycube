@@ -1,8 +1,8 @@
 # JellyCube configuration file
 # Place this file at:
-#   carda:/apps/jellycub/config.ini
+#   carda:/apps/jellycube/config.ini
 # or
-#   cardb:/apps/jellycub/config.ini
+#   cardb:/apps/jellycube/config.ini
 
 # Jellyfin server IPv4 address only (no hostnames, no HTTPS).
 server = 192.168.1.100

@@ -1,4 +1,4 @@
-# Build output
+# Generated build output
 /build/
 /build-dolphin/
 /dist/
@@ -9,8 +9,8 @@
 # Local Dolphin test credentials. Copy the tracked template and edit locally.
 /source/dolphin_test.local.c
 
-# Local test executables
-/extras/tests/host_auth_test
+# Local host-test binary.
+/archive/tests/host_auth_test
 
-# Downloaded research and vendor checkouts. Sources are recoverable from URLs.
-/extras/research/
+# Downloaded source and build logs. Recover from documented upstream URLs.
+/archive/research/

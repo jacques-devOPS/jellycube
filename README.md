@@ -49,18 +49,18 @@ make dolphin
 
 Output:
 
-- `jellycub.dol` — GameCube executable for hardware
-- `jellycub-dolphin.dol` — GameCube executable for Dolphin API/network testing
+- `jellycube.dol` — GameCube executable for hardware
+- `jellycube-dolphin.dol` — GameCube executable for Dolphin API/network testing
 
 ## Configure
 
 For hardware, copy `config.ini.example` to the SD card at:
 
 ```
-carda:/apps/jellycub/config.ini
+carda:/apps/jellycube/config.ini
 ```
 
-or `cardb:/apps/jellycub/config.ini`.
+or `cardb:/apps/jellycube/config.ini`.
 
 Edit it:
 
@@ -81,18 +81,18 @@ For the Dolphin test build, edit `source/dolphin_test.local.c` and rebuild with 
 
 ### Dolphin (recommended first step)
 
-Some Dolphin builds do not expose a GameCube SD card slot. If yours does not, use `jellycub-dolphin.dol`.
+Some Dolphin builds do not expose a GameCube SD card slot. If yours does not, use `jellycube-dolphin.dol`.
 
 1. Configure emulated BBA and bridge it to your LAN.
-2. Point Dolphin at `jellycub-dolphin.dol`.
+2. Point Dolphin at `jellycube-dolphin.dol`.
 3. Verify that the app obtains an IP, authenticates, and shows libraries.
 
-If your Dolphin has an SD Card option in Slot A, you can instead use `jellycub.dol` with a virtual SD card.
+If your Dolphin has an SD Card option in Slot A, you can instead use `jellycube.dol` with a virtual SD card.
 
 ### Real hardware
 
-1. Copy `jellycub.dol` to `carda:/apps/jellycub/jellycub.dol`.
-2. Copy `config.ini` to `carda:/apps/jellycub/config.ini`.
+1. Copy `jellycube.dol` to `carda:/apps/jellycube/jellycube.dol`.
+2. Copy `config.ini` to `carda:/apps/jellycube/config.ini`.
 3. Boot from an SD-capable loader.
 4. Select a movie/episode and press A. The app writes `carda:/mplayer/jellycube.m3u`.
 5. Launch MPlayer CE r658 and load the playlist.
