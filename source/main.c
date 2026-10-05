@@ -9,6 +9,7 @@
 #include "dolphin_test.h"
 #include "jellyfin.h"
 #include "config_locate.h"
+#include "token_cache.h"
 
 #ifndef JC_VERSION
 #define JC_VERSION "unknown"
@@ -81,11 +82,31 @@ int main(int argc, char **argv) {
         return 1;
     }
     client.config = &config;
-    if (jellyfin_authenticate(&client) < 0) {
-        printf("Authentication failed.\n");
-        wait_start();
-        network_deinit();
-        return 1;
+    {
+        char token_path[300];
+        int cached = 0, fresh = 0;
+        token_path[0] = 0;
+        if (config_path[0] && token_cache_path(config_path, token_path, sizeof(token_path)) == 0)
+            cached = token_cache_load(token_path, client.access_token, sizeof(client.access_token),
+                                      client.user_id, sizeof(client.user_id)) == 0;
+        if (cached && jellyfin_validate_token(&client) == 0) {
+            printf("Session: cached token valid.\n");
+        } else {
+            if (cached) printf("Session: cached token rejected; re-authenticating.\n");
+            if (jellyfin_authenticate(&client) < 0) {
+                printf("Authentication failed.\n");
+                wait_start();
+                network_deinit();
+                return 1;
+            }
+            fresh = 1;
+        }
+        if (fresh && token_path[0]) {
+            if (token_cache_save(token_path, client.access_token, client.user_id) == 0)
+                printf("Session: token cached. Exported playlists stay valid.\n");
+            else
+                printf("Session: token cache write failed (playlists valid this session only).\n");
+        }
     }
     /* Password no longer required after authentication. */
     memset(config.password, 0, sizeof(config.password));
