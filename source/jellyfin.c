@@ -60,6 +60,14 @@ s32 jellyfin_authenticate(jellyfin_client_t *c) {
     }
     return 0;
 }
+s32 jellyfin_validate_token(jellyfin_client_t *c) {
+    char id[128];
+    if(!safe_id(c->access_token)) return -1;
+    if(request(c,"GET","/Users/Me",NULL)<0) return -1;
+    if(json_string(&doc,json_member(&doc,0,"Id"),id,sizeof(id))<0 || !safe_id(id)) return -1;
+    snprintf(c->user_id,sizeof(c->user_id),"%s",id);
+    return 0;
+}
 static int list_items(jellyfin_client_t *c) {
     int array=json_member(&doc,0,"Items");c->count=0;
     if(array<0 || doc.tokens[array].type!=JSMN_ARRAY) return -1;
