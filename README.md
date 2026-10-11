@@ -1,5 +1,7 @@
 # JellyCube
 
+**This code is AI-generated.** The JellyCube client (HTTP, JSON, Jellyfin API, config and token cache, storage handling) was produced by an AI coding assistant under operator supervision and direction, and where noted in `README-GAMECUBE.md`, verified on real GameCube hardware.
+
 A native Jellyfin client for the Nintendo GameCube Broadband Adapter.
 
 ## Current status
