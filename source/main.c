@@ -10,6 +10,8 @@
 #include "jellyfin.h"
 #include "config_locate.h"
 #include "token_cache.h"
+#include "storage_order.h"
+#include <errno.h>
 
 #ifndef JC_VERSION
 #define JC_VERSION "unknown"
@@ -30,11 +32,39 @@ static int load_level(int depth) {
                  : jellyfin_get_libraries(&client);
 }
 
-/* Mount the first SD device found. Same order and behaviour as 0.2.1. */
-static void mount_volume(void) {
-    if (fatMountSimple("carda", &__io_gcsda)) volume = "carda:";
-    else if (fatMountSimple("cardb", &__io_gcsdb)) volume = "cardb:";
-    else if (fatMountSimple("sd2", &__io_gcsd2)) volume = "sd2:";
+/* Use the loader's physical device, not whichever card mounts first.
+ * Without a recognized launch prefix, try each card for an actual config.
+ * Never silently substitute another card when a known launch device fails. */
+static int locate_storage_config(int argc, char **argv) {
+    const char *names[] = {"carda", "cardb", "sd2"};
+    const char *volumes[] = {"carda:", "cardb:", "sd2:"};
+    const DISC_INTERFACE *devices[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2};
+    const char *launch = argc > 0 && argv ? argv[0] : NULL;
+    int preferred = storage_launch_index(launch);
+    printf("DOL: %s\n", launch ? launch : "not supplied");
+    printf("Storage: %s\n", preferred >= 0 ? volumes[preferred] : "launch device unknown; search A/B/SD2");
+    for (int attempt = 0; attempt < (preferred >= 0 ? 1 : 3); ++attempt) {
+        int i = preferred >= 0 ? preferred : attempt;
+        int up = devices[i]->startup();
+        int inserted = up ? devices[i]->isInserted() : -1;
+        int mounted = -1, mount_errno = 0;
+        if (inserted == 1) {
+            errno = 0;
+            mounted = fatMountSimple(names[i], devices[i]);
+            mount_errno = errno;
+        }
+        printf("%s startup=%d inserted=%d mounted=%d errno=%d\n",
+               names[i], up, inserted, mounted, mount_errno);
+        if (mounted == 1 && config_locate(volumes[i], argc, argv,
+                                         config_path, sizeof(config_path))) {
+            volume = volumes[i];
+            return 1;
+        }
+        if (mounted == 1) fatUnmount(volumes[i]);
+    }
+    config_path[0] = 0;
+    if (preferred >= 0) printf("Launch card/config unavailable. No different-card fallback.\n");
+    return 0;
 }
 
 int main(int argc, char **argv) {
@@ -52,12 +82,11 @@ int main(int argc, char **argv) {
 
     printf("\x1b[2J\x1b[HJellyCube %s\n", JC_VERSION);
 
-    mount_volume();
-    if (volume) printf("SD: %s mounted\n", volume);
-    else printf("SD: no FAT card mounted\n");
-
-    printf("Config search:\n");
-    if (volume && config_locate(volume, argc, argv, config_path, sizeof(config_path))) {
+    printf("Storage diagnostics (-1 = stage skipped):\n");
+    int found_config = locate_storage_config(argc, argv);
+    printf("Press A to continue.\n");
+    while (!(buttons() & PAD_BUTTON_A)) {}
+    if (found_config) {
         if (config_load(config_path, &config) < 0) {
             printf("Invalid config: %s\n", config_path);
             wait_start();

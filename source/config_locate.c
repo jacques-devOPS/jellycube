@@ -64,5 +64,6 @@ int config_locate(const char *volume, int argc, char **argv, char *out, size_t s
     } else {
         printf("  DOL: path not provided by loader\n");
     }
-    return try_rel(volume, "apps/jellycube/config.ini", out, size);
+    if (try_rel(volume, "apps/jellycube/config.ini", out, size)) return 1;
+    return try_rel(volume, "apps/mplayer-ce/config.ini", out, size);
 }
