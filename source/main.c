@@ -25,8 +25,200 @@ static int offsets[16], selections[16];
 static const char *volume;          /* Mounted SD volume, e.g. "carda:" */
 static char config_path[300];
 
+static void build_playlist_label(const jellyfin_item_t *item, char *label, size_t label_size) {
+    int n;
+    if (!item || !label || label_size < 2) return;
+    label[0] = '\0';
+    if (!strcmp(item->type, "Episode") && item->series_name[0]) {
+        if (item->parent_index_number > 0 && item->index_number > 0) {
+            n = snprintf(label, label_size, "%s S%02dE%02d %s",
+                         item->series_name, item->parent_index_number, item->index_number, item->name);
+            if (n > 0 && (size_t)n < label_size) return;
+        }
+        if (item->index_number > 0) {
+            n = snprintf(label, label_size, "%s E%02d %s",
+                         item->series_name, item->index_number, item->name);
+            if (n > 0 && (size_t)n < label_size) return;
+        }
+        n = snprintf(label, label_size, "%s %s", item->series_name, item->name);
+        if (n > 0 && (size_t)n < label_size) return;
+    }
+    if (!strcmp(item->type, "Movie") && item->production_year > 0) {
+        n = snprintf(label, label_size, "%s (%d)", item->name, item->production_year);
+        if (n > 0 && (size_t)n < label_size) return;
+    }
+    snprintf(label, label_size, "%s", item->name);
+}
+
+static void sanitize_playlist_name(const char *title, char *out, size_t out_size) {
+    size_t w = 0;
+    if (!title || !out || out_size < 2) return;
+    for (size_t i = 0; title[i] && w + 1 < out_size; ++i) {
+        unsigned char c = (unsigned char)title[i];
+        char ch;
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+            c == '-' || c == '_' || c == '.' || c == '(' || c == ')') {
+            ch = (char)c;
+        } else if (c == ' ') {
+            ch = '_';
+        } else {
+            ch = '_';
+        }
+        if (w > 0 && out[w - 1] == '_' && ch == '_') continue;
+        out[w++] = ch;
+    }
+    while (w > 0 && (out[w - 1] == '_' || out[w - 1] == '.')) w--;
+    if (w == 0) {
+        const char *fallback = "jellycube";
+        size_t i = 0;
+        while (fallback[i] && i + 1 < out_size) {
+            out[i] = fallback[i];
+            i++;
+        }
+        out[i] = '\0';
+        return;
+    }
+    out[w] = '\0';
+}
+
 static u32 buttons(void) { VIDEO_WaitVSync(); PAD_ScanPads(); return PAD_ButtonsDown(0); }
 static void wait_start(void) { printf("\nSTART: exit\n"); while (!(buttons() & PAD_BUTTON_START)) {} }
+
+static void clamp_label(const char *src, char *dst, size_t dst_size) {
+    const size_t max_visible = 38;
+    size_t n = 0;
+    if (!dst || dst_size == 0) return;
+    if (!src) src = "";
+    while (src[n] && n + 1 < dst_size && n < max_visible) {
+        dst[n] = src[n];
+        n++;
+    }
+    if (src[n] && n >= 3) {
+        dst[n - 3] = '.';
+        dst[n - 2] = '.';
+        dst[n - 1] = '.';
+    }
+    dst[n] = '\0';
+}
+
+static int prompt_choice(const char *title, const char *subtitle,
+                         const char **options, int count, int selected) {
+    char line[96];
+    char line2[96];
+    if (!options || count <= 0) return -1;
+    if (selected < 0 || selected >= count) selected = 0;
+    while (1) {
+        printf("\x1b[2J\x1b[H\n\n\n\n\n\n");
+
+        clamp_label(title ? title : "Choose", line, sizeof(line));
+        printf("%s\n", line);
+
+        if (subtitle && subtitle[0]) {
+            clamp_label(subtitle, line2, sizeof(line2));
+            printf("%s\n", line2);
+        }
+
+        clamp_label(options[selected], line, sizeof(line));
+        printf("< %d/%d > %s\n", selected + 1, count, line);
+        printf("\nUP/DOWN or L/R: select\nA: confirm  B/START: cancel\n");
+
+        u32 b = buttons();
+        if ((b & PAD_BUTTON_UP) || (b & PAD_TRIGGER_L)) {
+            selected = selected > 0 ? selected - 1 : count - 1;
+        } else if ((b & PAD_BUTTON_DOWN) || (b & PAD_TRIGGER_R)) {
+            selected = selected + 1 < count ? selected + 1 : 0;
+        } else if (b & PAD_BUTTON_A) {
+            return selected;
+        } else if ((b & PAD_BUTTON_B) || (b & PAD_BUTTON_START)) {
+            return -1;
+        }
+    }
+}
+
+static int prompt_stream_profile(const jellyfin_item_t *item, jellyfin_stream_profile_t *profile) {
+    jellyfin_stream_options_t options;
+    char subtitle[320];
+
+    if (!profile) return -1;
+    jellyfin_stream_profile_defaults(profile);
+
+    if (config.profile_count > 0) {
+        const char *ptrs[JC_MAX_PROFILES];
+        int pick;
+        for (int i = 0; i < config.profile_count; i++) {
+            ptrs[i] = config.profiles[i].name[0] ? config.profiles[i].name : "Profile";
+        }
+        pick = prompt_choice("Transcode profile", item ? item->name : "", ptrs, config.profile_count, 0);
+        if (pick < 0) return -1;
+        profile->video_codec = config.profiles[pick].video_codec;
+        profile->audio_codec = config.profiles[pick].audio_codec;
+        profile->max_width = config.profiles[pick].max_width;
+        profile->max_height = config.profiles[pick].max_height;
+        profile->max_framerate = config.profiles[pick].max_framerate;
+        profile->video_bitrate = config.profiles[pick].video_bitrate;
+        profile->audio_bitrate = config.profiles[pick].audio_bitrate;
+        profile->audio_channels = config.profiles[pick].audio_channels;
+        profile->audio_sample_rate = config.profiles[pick].audio_sample_rate;
+    } else {
+        profile->video_codec = config.video_codec;
+        profile->audio_codec = config.audio_codec;
+        profile->max_width = config.max_width;
+        profile->max_height = config.max_height;
+        profile->max_framerate = config.max_framerate;
+        profile->video_bitrate = config.video_bitrate;
+        profile->audio_bitrate = config.audio_bitrate;
+        profile->audio_channels = config.audio_channels;
+        profile->audio_sample_rate = config.audio_sample_rate;
+    }
+
+    snprintf(subtitle, sizeof(subtitle), "Item: %.240s", item ? item->name : "");
+
+    if (item && jellyfin_get_stream_options(&client, item->id, &options) == 0) {
+        if (options.audio_count > 0) {
+            char labels[JC_MAX_STREAMS][128];
+            const char *ptrs[JC_MAX_STREAMS];
+            int def = 0;
+            for (int i = 0; i < options.audio_count; i++) {
+                const char *lang = options.audio[i].language[0] ? options.audio[i].language : "und";
+                const char *name = options.audio[i].title[0] ? options.audio[i].title : "audio";
+                snprintf(labels[i], sizeof(labels[i]), "idx %d | %s | %s%s",
+                         options.audio[i].index, lang, name,
+                         options.audio[i].is_default ? " [default]" : "");
+                ptrs[i] = labels[i];
+                if (options.audio[i].is_default) def = i;
+            }
+            int pick = prompt_choice("Audio stream", subtitle, ptrs, options.audio_count, def);
+            if (pick < 0) return -1;
+            profile->audio_stream_index = options.audio[pick].index;
+        }
+
+        {
+            char labels[JC_MAX_STREAMS + 1][128];
+            const char *ptrs[JC_MAX_STREAMS + 1];
+            int count = 1;
+            int def = 0;
+            snprintf(labels[0], sizeof(labels[0]), "off");
+            ptrs[0] = labels[0];
+            for (int i = 0; i < options.subtitle_count; i++) {
+                const char *lang = options.subtitle[i].language[0] ? options.subtitle[i].language : "und";
+                const char *name = options.subtitle[i].title[0] ? options.subtitle[i].title : "subtitle";
+                snprintf(labels[count], sizeof(labels[count]), "idx %d | %s | %s%s",
+                         options.subtitle[i].index, lang, name,
+                         options.subtitle[i].is_default ? " [default]" : "");
+                ptrs[count] = labels[count];
+                if (options.subtitle[i].is_default) def = count;
+                count++;
+                if (count >= JC_MAX_STREAMS + 1) break;
+            }
+            int pick = prompt_choice("Subtitle stream", subtitle, ptrs, count, def);
+            if (pick < 0) return -1;
+            profile->subtitle_stream_index = pick == 0 ? -1 : options.subtitle[pick - 1].index;
+        }
+    }
+
+    return 0;
+}
+
 static int load_level(int depth) {
     return depth ? jellyfin_get_items(&client, parents[depth], offsets[depth])
                  : jellyfin_get_libraries(&client);
@@ -148,7 +340,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    char path[128];
+    char path[300];
+    char playlist_label[320];
+    char playlist_name[96];
+    jellyfin_stream_profile_t profile;
     int redraw = 1;
     while (1) {
         if (redraw) {
@@ -181,9 +376,20 @@ int main(int argc, char **argv) {
             } else if (!item->folder && (!strcmp(item->type, "Movie") ||
                        !strcmp(item->type, "Episode") || !strcmp(item->type, "Video"))) {
                 if (!volume) { printf("\nExport disabled: no SD card.\n"); continue; }
-                snprintf(path, sizeof(path), "%s/mplayer/jellycube.m3u", volume);
-                if (jellyfin_export_playlist(&client, item->id, path) == 0) {
+                if (prompt_stream_profile(item, &profile) < 0) {
+                    printf("\nExport cancelled.\n");
+                    redraw = 1;
+                    continue;
+                }
+                build_playlist_label(item, playlist_label, sizeof(playlist_label));
+                sanitize_playlist_name(playlist_label, playlist_name, sizeof(playlist_name));
+                snprintf(path, sizeof(path), "%s/mplayer/%s.m3u", volume, playlist_name);
+                if (jellyfin_export_playlist(&client, item->id, &profile, path) == 0) {
                     printf("\nSaved %s\n", path);
+                    printf("Profile: v=%s a=%s %dx%d %dfps vb=%d ab=%d\n",
+                           profile.video_codec, profile.audio_codec,
+                           profile.max_width, profile.max_height, profile.max_framerate,
+                           profile.video_bitrate, profile.audio_bitrate);
                     printf("Playlist contains a session token. Delete after testing.\n");
                 } else {
                     printf("\nExport failed. Create /mplayer on the SD card.\n");

@@ -16,3 +16,52 @@ password = test_pass
 # Client identification sent to Jellyfin.
 device_id = jellycube_01
 client_name = JellyCube
+
+# Global transcode defaults used when profile_count = 0.
+video_codec = mpeg2video
+audio_codec = mp2
+max_width = 320
+max_height = 240
+max_framerate = 25
+video_bitrate = 1000000
+audio_bitrate = 128000
+audio_channels = 2
+audio_sample_rate = 48000
+
+# Optional named profiles selectable per export.
+# Audio/subtitle stream remains per-item.
+# Default test set avoids h264.
+profile_count = 3
+
+profile1_name = GC_Safe
+profile1_video_codec = mpeg2video
+profile1_audio_codec = mp2
+profile1_max_width = 320
+profile1_max_height = 240
+profile1_max_framerate = 25
+profile1_video_bitrate = 1000000
+profile1_audio_bitrate = 128000
+profile1_audio_channels = 2
+profile1_audio_sample_rate = 48000
+
+profile2_name = GC_Balanced
+profile2_video_codec = mpeg2video
+profile2_audio_codec = mp2
+profile2_max_width = 480
+profile2_max_height = 360
+profile2_max_framerate = 25
+profile2_video_bitrate = 1500000
+profile2_audio_bitrate = 160000
+profile2_audio_channels = 2
+profile2_audio_sample_rate = 48000
+
+profile3_name = GC_High
+profile3_video_codec = mpeg2video
+profile3_audio_codec = mp2
+profile3_max_width = 640
+profile3_max_height = 480
+profile3_max_framerate = 25
+profile3_video_bitrate = 2200000
+profile3_audio_bitrate = 192000
+profile3_audio_channels = 2
+profile3_audio_sample_rate = 48000
