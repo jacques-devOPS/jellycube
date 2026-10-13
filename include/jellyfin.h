@@ -16,5 +16,5 @@ s32 jellyfin_validate_token(jellyfin_client_t *client);
 s32 jellyfin_get_libraries(jellyfin_client_t *client);
 s32 jellyfin_get_items(jellyfin_client_t *client,const char *parent,int start);
 int jellyfin_get_stream_url(jellyfin_client_t *client,const char *item,char *url,size_t size);
-int jellyfin_export_playlist(jellyfin_client_t *client,const char *item,const char *path);
+int jellyfin_export_playlist(jellyfin_client_t *client,const char *item,const char *title,const char *dir);
 #endif

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <dirent.h>
 #include <string.h>
 #include <ctype.h>
 #include "jellyfin.h"
@@ -99,17 +100,50 @@ s32 jellyfin_get_items(jellyfin_client_t *c,const char *parent,int start) {
 int jellyfin_get_stream_url(jellyfin_client_t *c,const char *item,char *url,size_t size) {
     if(!safe_id(item) || !safe_id(c->access_token)) return -1;
     /* Progressive MPEG-TS, not HLS. This conservative profile requires hardware validation. */
+    /* Tokenless URL: the player injects api_key from token.cache at open time.
+     * Playlists stay valid across JellyCube re-authentications. */
     int n=snprintf(url,size,"http://%s:%d/Videos/%s/stream.ts?Static=false&VideoCodec=mpeg2video&AudioCodec=mp2"
         "&VideoBitRate=1000000&AudioBitRate=128000&MaxWidth=320&MaxHeight=240&MaxFramerate=25"
         "&AudioChannels=2&AudioSampleRate=48000&EnableAutoStreamCopy=false"
-        "&AllowVideoStreamCopy=false&AllowAudioStreamCopy=false&api_key=%s",
-        c->config->server_address,c->config->server_port,item,c->access_token);
+        "&AllowVideoStreamCopy=false&AllowAudioStreamCopy=false",
+        c->config->server_address,c->config->server_port,item);
     return n>=0 && (size_t)n<size?0:-1;
 }
-int jellyfin_export_playlist(jellyfin_client_t *c,const char *item,const char *path) {
-    char url[1024];if(jellyfin_get_stream_url(c,item,url,sizeof(url))<0) return -1;
+/* FAT32-safe filename from an item title: forbidden chars map to '_',
+ * truncate to 64 chars, suffix ".m3u". Empty falls back to "jellycube.m3u". */
+static int jc_sanitize_title(const char *title,char *dst,size_t size) {
+    const char *bad="/\\:*?\"<>|";
+    size_t n=0;
+    if(!title) return -1;
+    for(;title[n] && n<size-6;n++) {
+        char ch=title[n];
+        dst[n]=(strchr(bad,ch)||(unsigned char)ch<32)?'_':ch;
+    }
+    if(!n) return -1;
+    dst[n]=0;strncat(dst,".m3u",5);
+    return 0;
+}
+int jellyfin_export_playlist(jellyfin_client_t *c,const char *item,const char *title,const char *dir) {
+    char path[512],url[1024];
+    if(jellyfin_get_stream_url(c,item,url,sizeof(url))<0) return -1;
+    char name[72];
+    if(jc_sanitize_title(title,name,sizeof(name))<0) snprintf(name,sizeof(name),"jellycube.m3u");
+    snprintf(path,sizeof(path),"%s/%s",dir,name);
+    /* Drop stale playlists from older exports; only the fresh one remains. */
+    DIR *d=opendir(dir);
+    if(d) {
+        struct dirent *e;char old[512];
+        while((e=readdir(d))) {
+            size_t l=strlen(e->d_name);
+            if(l>4 && !strcmp(e->d_name+l-4,".m3u")) {
+                snprintf(old,sizeof(old),"%s/%s",dir,e->d_name);
+                remove(old);
+            }
+        }
+        closedir(d);
+    }
     FILE *f=fopen(path,"w");if(!f) return -1;
-    int ok=fprintf(f,"#EXTM3U\n#EXTINF:-1,JellyCube test stream\n%s\n",url)>0;
+    int ok=fprintf(f,"#EXTM3U\n#EXTINF:-1,%s\n%s\n",title?title:"JellyCube stream",url)>0;
     if(fclose(f)!=0) ok=0;
     memset(url,0,sizeof(url));return ok?0:-1;
 }

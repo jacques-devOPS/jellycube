@@ -181,10 +181,10 @@ int main(int argc, char **argv) {
             } else if (!item->folder && (!strcmp(item->type, "Movie") ||
                        !strcmp(item->type, "Episode") || !strcmp(item->type, "Video"))) {
                 if (!volume) { printf("\nExport disabled: no SD card.\n"); continue; }
-                snprintf(path, sizeof(path), "%s/mplayer/jellycube.m3u", volume);
-                if (jellyfin_export_playlist(&client, item->id, path) == 0) {
-                    printf("\nSaved %s\n", path);
-                    printf("Playlist contains a session token. Delete after testing.\n");
+                snprintf(path, sizeof(path), "%s/mplayer", volume);
+                if (jellyfin_export_playlist(&client, item->id, item->name, path) == 0) {
+                    char shown[80];snprintf(shown,sizeof(shown),"%.70s",item->name);
+                    printf("\nSaved playlist: %s\n", shown);
                 } else {
                     printf("\nExport failed. Create /mplayer on the SD card.\n");
                 }
