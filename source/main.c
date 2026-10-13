@@ -11,6 +11,7 @@
 #include "config_locate.h"
 #include "token_cache.h"
 #include "storage_order.h"
+#include "ui.h"
 #include <errno.h>
 
 #ifndef JC_VERSION
@@ -336,6 +337,12 @@ int main(int argc, char **argv) {
         wait_start();
         network_deinit();
         return 1;
+    }
+
+    if (ui_browser_run(&client) == 0) {
+        memset(client.access_token, 0, sizeof(client.access_token));
+        network_deinit();
+        return 0;
     }
 
     char path[300];
