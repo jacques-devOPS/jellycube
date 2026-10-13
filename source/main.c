@@ -84,6 +84,14 @@ static void sanitize_playlist_name(const char *title, char *out, size_t out_size
 static u32 buttons(void) { VIDEO_WaitVSync(); PAD_ScanPads(); return PAD_ButtonsDown(0); }
 static void wait_start(void) { printf("\nSTART: exit\n"); while (!(buttons() & PAD_BUTTON_START)) {} }
 
+static int wait_ack_or_exit(void) {
+    while (1) {
+        u32 b = buttons();
+        if (b & PAD_BUTTON_A) return 0;
+        if (b & PAD_BUTTON_START) return 1;
+    }
+}
+
 static void clamp_label(const char *src, char *dst, size_t dst_size) {
     const size_t max_visible = 38;
     size_t n = 0;
@@ -233,20 +241,14 @@ static int locate_storage_config(int argc, char **argv) {
     const DISC_INTERFACE *devices[] = {&__io_gcsda, &__io_gcsdb, &__io_gcsd2};
     const char *launch = argc > 0 && argv ? argv[0] : NULL;
     int preferred = storage_launch_index(launch);
-    printf("DOL: %s\n", launch ? launch : "not supplied");
-    printf("Storage: %s\n", preferred >= 0 ? volumes[preferred] : "launch device unknown; search A/B/SD2");
     for (int attempt = 0; attempt < (preferred >= 0 ? 1 : 3); ++attempt) {
         int i = preferred >= 0 ? preferred : attempt;
         int up = devices[i]->startup();
         int inserted = up ? devices[i]->isInserted() : -1;
-        int mounted = -1, mount_errno = 0;
+        int mounted = -1;
         if (inserted == 1) {
-            errno = 0;
             mounted = fatMountSimple(names[i], devices[i]);
-            mount_errno = errno;
         }
-        printf("%s startup=%d inserted=%d mounted=%d errno=%d\n",
-               names[i], up, inserted, mounted, mount_errno);
         if (mounted == 1 && config_locate(volumes[i], argc, argv,
                                          config_path, sizeof(config_path))) {
             volume = volumes[i];
@@ -255,7 +257,6 @@ static int locate_storage_config(int argc, char **argv) {
         if (mounted == 1) fatUnmount(volumes[i]);
     }
     config_path[0] = 0;
-    if (preferred >= 0) printf("Launch card/config unavailable. No different-card fallback.\n");
     return 0;
 }
 
@@ -274,10 +275,7 @@ int main(int argc, char **argv) {
 
     printf("\x1b[2J\x1b[HJellyCube %s\n", JC_VERSION);
 
-    printf("Storage diagnostics (-1 = stage skipped):\n");
     int found_config = locate_storage_config(argc, argv);
-    printf("Press A to continue.\n");
-    while (!(buttons() & PAD_BUTTON_A)) {}
     if (found_config) {
         if (config_load(config_path, &config) < 0) {
             printf("Invalid config: %s\n", config_path);
@@ -344,6 +342,7 @@ int main(int argc, char **argv) {
     char playlist_label[320];
     char playlist_name[96];
     jellyfin_stream_profile_t profile;
+    int quit_requested = 0;
     int redraw = 1;
     while (1) {
         if (redraw) {
@@ -375,9 +374,15 @@ int main(int argc, char **argv) {
                 offsets[depth] = 0; selected = 0; reload = 1;
             } else if (!item->folder && (!strcmp(item->type, "Movie") ||
                        !strcmp(item->type, "Episode") || !strcmp(item->type, "Video"))) {
-                if (!volume) { printf("\nExport disabled: no SD card.\n"); continue; }
+                if (!volume) {
+                    printf("\x1b[2J\x1b[HExport disabled: no SD card.\n\nA: back  START: exit\n");
+                    if (wait_ack_or_exit()) { quit_requested = 1; break; }
+                    redraw = 1;
+                    continue;
+                }
                 if (prompt_stream_profile(item, &profile) < 0) {
-                    printf("\nExport cancelled.\n");
+                    printf("\x1b[2J\x1b[HExport cancelled.\n\nA: back  START: exit\n");
+                    if (wait_ack_or_exit()) { quit_requested = 1; break; }
                     redraw = 1;
                     continue;
                 }
@@ -385,19 +390,22 @@ int main(int argc, char **argv) {
                 sanitize_playlist_name(playlist_label, playlist_name, sizeof(playlist_name));
                 snprintf(path, sizeof(path), "%s/mplayer/%s.m3u", volume, playlist_name);
                 if (jellyfin_export_playlist(&client, item->id, &profile, path) == 0) {
-                    printf("\nSaved %s\n", path);
-                    printf("Profile: v=%s a=%s %dx%d %dfps vb=%d ab=%d\n",
+                    printf("\x1b[2J\x1b[HSaved %s\n\nProfile: v=%s a=%s %dx%d %dfps\nvb=%d ab=%d\n\nA: back  START: exit\n",
+                           path,
                            profile.video_codec, profile.audio_codec,
                            profile.max_width, profile.max_height, profile.max_framerate,
                            profile.video_bitrate, profile.audio_bitrate);
-                    printf("Playlist contains a session token. Delete after testing.\n");
                 } else {
-                    printf("\nExport failed. Create /mplayer on the SD card.\n");
+                    printf("\x1b[2J\x1b[HExport failed. Create /mplayer on the SD card.\n\nA: back  START: exit\n");
                 }
+                if (wait_ack_or_exit()) { quit_requested = 1; break; }
+                redraw = 1;
+                continue;
             } else {
                 printf("\nUnsupported item or directory depth.\n");
             }
         }
+        if (quit_requested) break;
         if (reload) {
             if (load_level(depth) < 0 || !client.count) {
                 printf("\nRequest failed or page empty. Restoring previous page.\n");

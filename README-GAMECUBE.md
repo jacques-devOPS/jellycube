@@ -1,36 +1,29 @@
 # JellyCube GameCube Client
 
-A native Jellyfin client for the Nintendo GameCube Broadband Adapter.
-Derives from the JellyCube project. Pairs with the MPlayer CE GameCube
-port (jacques-devOPS/mplayer-ce-gc) for playback.
+Native Jellyfin client for Nintendo GameCube. Uses Broadband Adapter for
+API access and exports playlists for MPlayer CE GameCube playback.
 
 ## Verified functions (hardware)
 
-- Builds with devkitPPC r50 / GCC 16.1 / libogc 3.1.
-- Mounts FAT32 storage through SD2SP2 (`sd2:`) and SD Gecko
-  (`carda:`, `cardb:`) with per-device startup/inserted/mounted
-  diagnostics.
-- Uses the launcher's `argv[0]` physical device preference; no silent
-  different-card fallback for a known launch device.
-- Brings up the BBA with DHCP.
-- Authenticates to Jellyfin (username/password), validates cached
-  tokens via `/Users/Me`, re-authenticates only on rejection, and
-  persists the token beside `config.ini` in `token.cache`.
-- Lists libraries and items; selects an item and exports an M3U.
-- Requests a progressive MPEG-TS transcode (MPEG-2 + MP2).
-- End-to-end verified with the MPlayer CE GameCube port using
-  `nocache=yes`.
+- Builds with devkitPPC r50, GCC 16.1, libogc 3.1.
+- Mounts FAT32 storage via SD2SP2 (`sd2:`) and SD Gecko (`carda:`, `cardb:`).
+- Uses launch-device preference from `argv[0]` without silent fallback.
+- Initializes BBA with DHCP.
+- Authenticates to Jellyfin, validates `token.cache` via `/Users/Me`, and
+  re-authenticates only when needed.
+- Browses libraries/items and exports playlist files.
+- Supports per-item audio and subtitle stream selection at export time.
+- Supports named transcode profiles from `config.ini`.
 
-## Filesystem requirement (application path, not hardware)
+## Filesystem requirement
 
-SD2SP2 hardware is not limited to FAT32, and Swiss reads exFAT fine.
-The **JellyCube / libfat path requires FAT32**: an exFAT card mounts
-as `0` in the boot diagnostics. Format the card used by JellyCube as
-FAT32. exFAT support is future work.
+SD2SP2 hardware can be used with multiple filesystems, but the
+JellyCube/libfat path requires FAT32. Swiss exFAT support does not imply
+JellyCube mount support.
 
 ## Configuration
 
-`config.ini` beside `jellycube.dol` (never commit real credentials):
+Place `config.ini` beside `jellycube.dol`.
 
 ```ini
 server = 10.0.0.179
@@ -39,38 +32,72 @@ username = gamecube
 password = REPLACE_ME
 device_id = jellycube_01
 client_name = JellyCube
+
+video_codec = mpeg2video
+audio_codec = mp2
+max_width = 320
+max_height = 240
+max_framerate = 25
+video_bitrate = 1000000
+audio_bitrate = 128000
+audio_channels = 2
+audio_sample_rate = 48000
+
+profile_count = 3
+profile1_name = GC_Safe
+profile1_video_codec = mpeg2video
+profile1_audio_codec = mp2
+profile1_max_width = 320
+profile1_max_height = 240
+profile1_max_framerate = 25
+profile1_video_bitrate = 1000000
+profile1_audio_bitrate = 128000
+profile1_audio_channels = 2
+profile1_audio_sample_rate = 48000
+
+profile2_name = GC_Balanced
+profile2_video_codec = mpeg2video
+profile2_audio_codec = mp2
+profile2_max_width = 480
+profile2_max_height = 360
+profile2_max_framerate = 25
+profile2_video_bitrate = 1500000
+profile2_audio_bitrate = 160000
+profile2_audio_channels = 2
+profile2_audio_sample_rate = 48000
+
+profile3_name = GC_High
+profile3_video_codec = mpeg2video
+profile3_audio_codec = mp2
+profile3_max_width = 640
+profile3_max_height = 480
+profile3_max_framerate = 25
+profile3_video_bitrate = 2200000
+profile3_audio_bitrate = 192000
+profile3_audio_channels = 2
+profile3_audio_sample_rate = 48000
 ```
-
-## Token cache
-
-Jellyfin revokes the previous access token when the same device
-authenticates again, which invalidated previously exported playlists.
-`token.cache` beside `config.ini` holds the current token; export is
-only valid while that token lives. Playlists embed the token: delete
-them after testing.
 
 ## Playlist output
 
-JellyCube writes `<volume>:/mplayer/jellycube.m3u` (e.g.
-`sd2:/mplayer/jellycube.m3u`). Keep a `mplayer/` folder at the card
-root. MPlayer CE loads it via Open → Playlist → SD2SP2.
+- File path: `<volume>:/mplayer/<sanitized_title>.m3u`
+- Episode naming uses series/season/episode when available.
+- Movie naming uses title and year when available.
 
-## Transcode request
+Keep `/mplayer` at card root.
 
-```
-Static=false
-VideoCodec=mpeg2video&AudioCodec=mp2
-VideoBitRate=1000000&AudioBitRate=128000
-MaxWidth=320&MaxHeight=240&MaxFramerate=25
-AudioChannels=2&AudioSampleRate=48000
-EnableAutoStreamCopy=false
-AllowVideoStreamCopy=false&AllowAudioStreamCopy=false
-```
+## Token cache
 
-Jellyfin transcodes server-side; JellyCube does not decode media.
+`token.cache` is stored beside `config.ini`. Exported playlists embed the
+current token. Token rotation can invalidate older playlists.
 
-## Known MPlayer CE integration constraint
+## Runtime UX notes
 
-HTTP playback through the MPlayer CE GameCube stream-cache path fails;
-the same content plays with the cache disabled. Until that port
-repairs its cache path, `mplayer.conf` must contain `nocache=yes`.
+- Storage diagnostics at startup are removed for faster launch.
+- After export/cancel/fail, JellyCube now shows an explicit confirmation
+  screen with `A: back` and `START: exit`.
+
+## MPlayer CE dependency note
+
+Current GameCube MPlayer CE path requires `nocache=yes` for reliable HTTP
+playback in this workflow.
